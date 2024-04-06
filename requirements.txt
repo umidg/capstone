@@ -1,0 +1,7 @@
+beautifulsoup4
+numpy==1.25.2
+pandas==2.0.3
+selenium==3.0.0
+webdriver-manager
+langdetect
+scikit-learn==1.25.2
