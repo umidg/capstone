@@ -6,3 +6,4 @@ webdriver-manager
 langdetect
 scikit-learn==1.25.2
 transformers
+flask
