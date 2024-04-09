@@ -1,0 +1,1 @@
+The model for this pre-trained model is more than 400+ MB. Github only stores data upto 100MB. The model will be in google drive at: TBD
