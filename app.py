@@ -1,36 +1,81 @@
-from flask import Flask
+import json
+from flask import Flask, jsonify, request, send_from_directory, make_response
+from flask_cors import CORS, cross_origin
+from modules.recomendation import tfidf_rec
+from modules.scrapper import recommend_job
+from modules.preTrained import generate_cover_letter
+import os
+from modules.custom import generate_cover_letter
 
-# Create a Flask application
 app = Flask(__name__)
 
-# Import the route handler function from recommend.py
-from PreTrainedGPT.gpt2_model_interface import generate_cover_letter
-from JobRecommendation.recommend_job import recommend_job
+CORS(app)
 
-# Define a route for the API endpoint
-@app.route('/api/job/pretrained', methods=['GET'])
-def route_to_pretrained():
-    job_description = """
-    Job Information: Generate a cover letter for Retail Sales AssociateCashier at CAA Qubec that requires Bilingual,
-    Spanish, Sales, Inventory management, Customer service, Basic math, English, Organizational skills, Communication skills, 
-    Retail sales as major qualifications and retail sales, sales associate, assist customers, hour hour, ability work, 
-    accurately maintain, alongside management, appealing stock, apply today, assisting managing as major requirements. 
-    My name is Jane Doe, my education is Bachelor's Degree in Business Administration from McGill University, Montreal,
-    Quebec Graduated: May 2015  and my skills are Bilingual (English and Spanish), Sales, Inventory Management, Customer 
-    Service, Basic Math, Organizational Skills, Communication Skills, Retail Sales  and my work experience is Retail Sales
-    Associate at Best Buy, Montreal, Quebec (June 2015 - Present): Assisted customers with product selection and queries. 
-    Managed inventory accurately and worked alongside management
-    to maintain an appealing stock display. Demonstrated excellent communication and organizational skills.. 
-    """
-    return generate_cover_letter(job_description)
+@app.route('/')
+def serve_home():
+    return send_from_directory('./jobbuddys/out', 'index.html')
 
-# Define a route for the API endpoint
-@app.route('/api/job/recommend', methods=['GET'])
-def route_to_recommend():
-    area_lists = ['account+manager']
 
-    return recommend_job(area_lists)
+@app.route('/api/hello', methods=['GET'])
+def cover_letter():
+    return "Hello from APIs"
 
-# Run the Flask application
+@app.route('/<path:path>')
+def serve_file(path):
+    return send_from_directory('./jobbuddys/out', path)
+
+@app.route('/api/jobs', methods=['POST', 'OPTIONS'])
+@cross_origin(origin='*', methods=['POST', 'OPTIONS'])
+def get_employees():
+    data = request.json
+    job_title = data["job_title"]
+    lists = recommend_job(area_lists=[job_title])
+    return jsonify(lists)
+
+@app.route('/api/cover_letter_free', methods=['POST'])
+def cover_letter_generator():
+    data = request.json
+    name = data['full_name']
+    job_title = data['job_title']
+    company = data['company']
+    required_qualifications = data['qualifications']
+    major_requirements = data['bigrams']
+    education = data['education']
+    skills = data['skills']
+    work_experience = data['experience']
+    print(f'''Job Information: Generate a cover letter for {job_title} at {company} that requires {required_qualifications} as major qualifications and {major_requirements} as major requirements. My name is {name}, my education is {education} and my skills are {skills} and my work experience is {work_experience}...''')
+    cv = generate_cover_letter(job_description=f'''Job Information: Generate a cover letter for {job_title} at {company} that requires {required_qualifications} as major qualifications and {major_requirements} as major requirements. My name is {name}, my education is {education} and my skills are {skills} and my work experience is {work_experience}...''', applicant_name=name, company_name=company)
+    print(cv)
+    return cv   
+
+@app.route('/api/cover_letter_premium', methods=['POST'])
+def cover_letter_generator_premium():
+    data = request.json
+    name = data['full_name']
+    job_title = data['job_title']
+    company = data['company']
+    required_qualifications = data['qualifications']
+    major_requirements = data['bigrams']
+    education = data['education']
+    skills = data['skills']
+    work_experience = data['experience']
+    input_prompt = f'''Job Information: Generate a cover letter for {job_title} at {company} that requires {required_qualifications} as major qualifications and {major_requirements} as major requirements. My name is {name}, my education is {education}  and my skills are {skills}  and my work experience is {work_experience}...'''
+    a = generate_cover_letter(input_prompt)
+    print(a,"this is a")
+    return {'cover_letter':a}
+     
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(port=5000)
+   app.run(debug=True,host='0.0.0.0',port=int(os.environ.get('PORT', 5001)))
+
+
+def _build_cors_preflight_response():
+    response = make_response()
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add('Access-Control-Allow-Headers', "*")
+    response.headers.add('Access-Control-Allow-Methods', "*")
+    return response
+
+# def _corsify_actual_response(response):
+#     response.headers.add("Access-Control-Allow-Origin", "*")
+#     return response
